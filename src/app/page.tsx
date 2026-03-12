@@ -479,16 +479,23 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
-      <header className="border-b border-slate-300 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
+      <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-none">
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">
+                  Azure DevOps
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Test case CSV converter
+                </span>
+              </div>
+              <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl dark:text-slate-50">
                 Test Case Text to Azure DevOps CSV Converter
               </h1>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                Paste BDD or Standard test cases, review them, and download an Azure DevOps bulk
-                import CSV. No API keys required.
+              <p className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                Paste BDD or Standard test cases, review them, and download an Azure DevOps bulk import CSV.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -504,26 +511,37 @@ export default function Home() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex shrink-0 items-center rounded-full border border-slate-300 bg-slate-100 px-1.5 py-1 text-xs text-slate-700 hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
                 aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
               >
-              {isDark ? (
-                <>
-                  <span aria-hidden>☀️</span>
-                  Light
-                </>
-              ) : (
-                <>
-                  <span aria-hidden>🌙</span>
-                  Dark
-                </>
-              )}
+                <span
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isDark ? "bg-amber-300" : "bg-slate-700"
+                  }`}
+                  aria-hidden
+                >
+                  <span
+                    className={`inline-flex h-5 w-5 transform items-center justify-center rounded-full bg-white text-[11px] shadow-sm transition-transform ${
+                      isDark ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  >
+                    {isDark ? "☀️" : "🌙"}
+                  </span>
+                </span>
               </button>
             </div>
           </div>
           <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-            Shortcuts: <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+Enter</kbd> Parse · <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+S</kbd> Download CSV
+            Shortcuts:{" "}
+            <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">
+              Ctrl+Enter
+            </kbd>{" "}
+            Parse ·{" "}
+            <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">
+              Ctrl+S
+            </kbd>{" "}
+            Download CSV
           </p>
         </div>
       </header>
@@ -532,11 +550,11 @@ export default function Home() {
         <section className="space-y-6">
           {/* Input block */}
           <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Paste test cases</h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2">
-                  <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <label className="flex flex-col gap-0.5 text-[11px] text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:gap-2">
+                  <span className="flex items-center">
                     Template
                     <FieldTooltip
                       id="tooltip-template"
@@ -546,7 +564,7 @@ export default function Home() {
                   <select
                     value={parserId}
                     onChange={handleTemplateChange}
-                    className="rounded border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                    className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 sm:w-auto"
                     aria-label="Select test case template"
                   >
                     {parserRegistry
@@ -562,7 +580,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowPromptModal(true)}
-                  className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                  className="self-start text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
                 >
                   How to prompt AI
                 </button>
