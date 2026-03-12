@@ -6,6 +6,7 @@ export type CsvSettings = {
   areaPath: string;
   assignedTo: string;
   state: string;
+  tags: string;
 };
 
 export const CSV_HEADERS = [
@@ -18,6 +19,7 @@ export const CSV_HEADERS = [
   "Area Path",
   "Assigned To",
   "State",
+  "Tags",
 ] as const;
 
 export type CsvRow = Record<(typeof CSV_HEADERS)[number], string>;
@@ -37,6 +39,7 @@ export function buildAzureCsvRows(cases: ExportTestCase[], settings: CsvSettings
       "Area Path": settings.areaPath,
       "Assigned To": settings.assignedTo,
       State: settings.state || "Design",
+      Tags: settings.tags ?? "",
     });
 
     const actionLines: string[] = [];
@@ -53,6 +56,7 @@ export function buildAzureCsvRows(cases: ExportTestCase[], settings: CsvSettings
       "Area Path": "",
       "Assigned To": "",
       State: "",
+      Tags: "",
     });
   }
 
@@ -82,6 +86,7 @@ export function buildAzureCsvStandardRows(cases: NormalizedTestCase[], settings:
       "Area Path": settings.areaPath,
       "Assigned To": settings.assignedTo,
       State: settings.state || "Design",
+      Tags: settings.tags ?? "",
     });
 
     const preconditions = tc.preconditions ?? [];
@@ -135,6 +140,7 @@ export function buildAzureCsvStandardRows(cases: NormalizedTestCase[], settings:
         "Area Path": "",
         "Assigned To": "",
         State: "",
+        Tags: "",
       });
     });
   }

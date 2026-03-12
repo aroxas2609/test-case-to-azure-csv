@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS: CsvSettings = {
   areaPath: "Project\\Area",
   assignedTo: "",
   state: "Design",
+  tags: "",
 };
 
 /** Full values for CSV; dropdown shows name only (before " <") */
@@ -656,6 +657,22 @@ export default function Home() {
                 <option value="Closed">Closed</option>
               </select>
             </label>
+            <label className="flex flex-col gap-0.5">
+              <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+                Tags
+                <FieldTooltip
+                  id="tooltip-tags"
+                  content="Tags for Azure DevOps (semicolon-separated, e.g. Regression; Smoke)."
+                />
+              </span>
+              <input
+                type="text"
+                value={settings.tags ?? ""}
+                onChange={(e) => setSettings((s) => ({ ...s, tags: e.target.value }))}
+                placeholder="e.g. Regression; Smoke"
+                className="w-40 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </label>
           </div>
 
           {/* Parsed list: full width */}
@@ -899,7 +916,7 @@ export default function Home() {
                   <strong>Review and edit</strong> — Expand a case (click the arrow) to edit Title, and either Given/When/Then (BDD) or Preconditions/Steps/Expected Result (Standard). Use <strong>Delete</strong> to remove a case.
                 </li>
                 <li>
-                  <strong>Set CSV defaults</strong> — Fill in <strong>Area Path</strong>, <strong>Assigned To</strong>, and <strong>State</strong>. These are applied to every test case in the export and are saved for next time.
+                  <strong>Set CSV defaults</strong> — Fill in <strong>Area Path</strong>, <strong>Assigned To</strong>, <strong>State</strong>, and optional <strong>Tags</strong>. These are applied to every test case in the export and are saved for next time.
                 </li>
                 <li>
                   <strong>Download CSV</strong> — Click <strong>Download CSV</strong> to get an Azure DevOps–ready file. BDD produces two rows per case (Test Case + one step); Standard produces one row per case plus one row per step (including preconditions).
