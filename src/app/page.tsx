@@ -272,7 +272,7 @@ export default function Home() {
     setParserId(e.currentTarget.value);
   };
 
-  const applyFormat = (wrapper: { before: string; after: string } | null, listPrefix: (line: string, i: number) => string | null) => {
+  const applyFormat = (wrapper: { before: string; after: string } | null, listPrefix: ((line: string, i: number) => string) | null) => {
     const ta = pasteTextareaRef.current;
     if (!ta) return;
     const start = ta.selectionStart;
@@ -303,7 +303,7 @@ export default function Home() {
         newStart = start;
         newEnd = start + numbered.length;
       } else {
-        const inserted = listPrefix(prefix || " ", 0).trimStart();
+        const inserted = (listPrefix(prefix || " ", 0) ?? "").trimStart();
         newText = value.slice(0, start) + inserted + value.slice(end);
         newStart = start;
         newEnd = start + inserted.length;
