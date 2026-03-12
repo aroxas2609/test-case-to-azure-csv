@@ -25,6 +25,10 @@ const FAQ_ITEMS = [
     q: "How do I get a prompt for AI to write test cases?",
     a: "Click \"How to prompt AI\" next to the template dropdown. A modal opens with a copy-ready prompt for the selected template. Copy it and use it in your AI tool, then paste the output back into the app.",
   },
+  {
+    q: "Why is the Assigned To dropdown locked?",
+    a: "Assigned To is optional and can be configured with a password-protected list of assignees for your organisation. Click the padlock icon to enter the password and unlock the list. Once unlocked you can pick a name or leave it blank; clicking the padlock again will lock the list and hide the names.",
+  },
 ];
 
 export default function FaqPage() {

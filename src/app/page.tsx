@@ -69,7 +69,7 @@ const TEMPLATE_IDS = ["bdd", "standard"] as const;
 const APP_VERSION = "0.3.0";
 
 const CHANGELOG_ENTRIES = [
-  { version: "0.3.0", date: "2025", items: ["FAQ page with common questions", "Feedback page — send a message (email via Resend)", "Footer links: FAQ and Feedback"] },
+  { version: "0.3.0", date: "2025", items: ["FAQ page with common questions", "Feedback page — send a message (email via Resend)", "Footer links: FAQ and Feedback", "Password-protected Assigned To list (padlock unlock)"] },
   { version: "0.2.0", date: "2025", items: ["Tags in CSV for Azure DevOps", "Auto-format conversion on Parse (BDD/Standard)", "How to use & How to prompt AI as modals", "Light theme tweaks & Roboto font", "CSV preview, theme toggle, keyboard shortcuts", "Drag-and-drop .txt files", "Tooltips for CSV defaults"] },
   { version: "0.1.0", date: "2025", items: ["BDD and Standard templates", "Parse text → Download CSV", "Azure DevOps CSV export"] },
 ];
@@ -192,6 +192,7 @@ export default function Home() {
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [assignedToOptions, setAssignedToOptions] = useState<string[]>([]);
+  const [showAssigneesPassword, setShowAssigneesPassword] = useState(false);
   const [assigneesPassword, setAssigneesPassword] = useState("");
   const [assigneesError, setAssigneesError] = useState<string>("");
   const [assigneesLoading, setAssigneesLoading] = useState(false);
@@ -206,6 +207,20 @@ export default function Home() {
     const nowDark = document.documentElement.classList.contains("dark");
     localStorage.setItem("theme", nowDark ? "dark" : "light");
     setIsDark(nowDark);
+  };
+
+  const handleToggleAssigneesLock = () => {
+    if (assignedToOptions.length > 0) {
+      // Relock: clear options and any selected assignee
+      setAssignedToOptions([]);
+      setSettings((s) => ({ ...s, assignedTo: "" }));
+      setAssigneesError("");
+      setShowAssigneesPassword(false);
+    } else {
+      // Show password field
+      setShowAssigneesPassword((v) => !v);
+      setAssigneesError("");
+    }
   };
 
   const unlockAssignees = useCallback(async () => {
@@ -657,9 +672,18 @@ export default function Home() {
                   id="tooltip-assigned-to"
                   content="Unlock the assignee list with a password, then select or leave blank."
                 />
+                <button
+                  type="button"
+                  onClick={handleToggleAssigneesLock}
+                  className="ml-1 flex h-4 w-4 items-center justify-center rounded border border-slate-400 text-[10px] text-slate-500 hover:border-slate-600 hover:text-slate-700 dark:border-slate-500 dark:text-slate-400 dark:hover:border-slate-400 dark:hover:text-slate-200"
+                  title={assignedToOptions.length > 0 ? "Lock assignees" : "Unlock assignees"}
+                  aria-label={assignedToOptions.length > 0 ? "Lock assignees" : "Unlock assignees"}
+                >
+                  <span aria-hidden>{assignedToOptions.length > 0 ? "🔓" : "🔒"}</span>
+                </button>
               </span>
-              {assignedToOptions.length === 0 && (
-                <div className="mb-1 flex items-center gap-2">
+              {showAssigneesPassword && assignedToOptions.length === 0 && (
+                <div className="mb-1 mt-1 flex items-center gap-2">
                   <input
                     type="password"
                     value={assigneesPassword}
