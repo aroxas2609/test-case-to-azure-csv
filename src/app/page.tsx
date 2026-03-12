@@ -146,6 +146,7 @@ export default function Home() {
   const [errors, setErrors] = useState<{ blockText: string; message: string }[]>([]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -316,6 +317,38 @@ export default function Home() {
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const isText =
+      file.type.startsWith("text/") ||
+      file.name.endsWith(".txt") ||
+      file.name.endsWith(".md") ||
+      file.name.endsWith(".csv");
+    if (!isText) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      setRawText(text);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/80">
@@ -420,14 +453,21 @@ export default function Home() {
                 Bullet list
               </button>
             </div>
-            <textarea
-              ref={pasteTextareaRef}
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              rows={8}
-              placeholder="Paste test cases here (BDD or Standard template)."
-              className="w-full resize-y rounded-b-lg rounded-t-none border border-slate-300 border-t-0 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-            />
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={isDraggingOver ? "ring-2 ring-primary-500 ring-offset-2 rounded-b-lg rounded-t-none dark:ring-offset-slate-900" : ""}
+            >
+              <textarea
+                ref={pasteTextareaRef}
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                rows={8}
+                placeholder="Paste test cases here or drag and drop a .txt file (BDD or Standard template)."
+                className="w-full resize-y rounded-b-lg rounded-t-none border border-slate-300 border-t-0 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              />
+            </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 type="button"
