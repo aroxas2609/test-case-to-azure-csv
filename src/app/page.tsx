@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   buildAzureCsv,
   buildAzureCsvStandard,
@@ -75,6 +76,13 @@ const PARSER_DEFAULT = "bdd";
 
 /** Only these templates are shown in the UI. */
 const TEMPLATE_IDS = ["bdd", "standard"] as const;
+
+const APP_VERSION = "0.2.0";
+
+const CHANGELOG_ENTRIES = [
+  { version: "0.2.0", date: "2025", items: ["Tags in CSV for Azure DevOps", "Auto-format conversion on Parse (BDD/Standard)", "How to use & How to prompt AI as modals", "Light theme tweaks & Roboto font", "CSV preview, theme toggle, keyboard shortcuts", "Drag-and-drop .txt files", "Tooltips for CSV defaults"] },
+  { version: "0.1.0", date: "2025", items: ["BDD and Standard templates", "Parse text → Download CSV", "Azure DevOps CSV export"] },
+];
 
 /** Prompt text for each template; user copies the one for the selected template. */
 const PROMPTS_BY_PARSER: Record<string, string> = {
@@ -191,6 +199,7 @@ export default function Home() {
   const [showCsvPreview, setShowCsvPreview] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [showHowToModal, setShowHowToModal] = useState(false);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -873,6 +882,80 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-slate-300 bg-white py-3 dark:border-slate-700 dark:bg-slate-900/50">
+        <div className="mx-auto max-w-4xl px-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8 dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => setShowChangelogModal(true)}
+            className="hover:text-slate-700 dark:hover:text-slate-300"
+          >
+            v{APP_VERSION} · What&apos;s new
+          </button>
+          {" · "}
+          <Link href="/faq" className="hover:text-slate-700 dark:hover:text-slate-300">FAQ</Link>
+          {" · "}
+          <Link href="/feedback" className="hover:text-slate-700 dark:hover:text-slate-300">Feedback</Link>
+        </div>
+      </footer>
+
+      {/* Changelog / What's new modal */}
+      {showChangelogModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="changelog-modal-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowChangelogModal(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative max-h-[85vh] w-full max-w-md rounded-xl border border-slate-300 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+              <h2 id="changelog-modal-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                What&apos;s new · v{APP_VERSION}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowChangelogModal(false)}
+                className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[calc(85vh-8rem)] overflow-y-auto px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+              {CHANGELOG_ENTRIES.map((entry) => (
+                <div key={entry.version} className="mb-4">
+                  <p className="font-medium text-slate-800 dark:text-slate-200">
+                    v{entry.version}
+                    {entry.date && <span className="ml-2 text-slate-500 dark:text-slate-400">({entry.date})</span>}
+                  </p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5 pl-1 text-xs">
+                    {entry.items.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowChangelogModal(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* How to use modal */}
       {showHowToModal && (
