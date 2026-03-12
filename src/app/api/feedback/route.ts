@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 const RECIPIENT = process.env.FEEDBACK_RECIPIENT_EMAIL;
 const FROM_EMAIL = process.env.FEEDBACK_FROM_EMAIL || "Test Case Converter <onboarding@resend.dev>";
 
@@ -44,6 +52,13 @@ export async function POST(request: Request) {
   ]
     .filter(Boolean)
     .join("\n");
+  const html = [
+    name && `<p><strong>From:</strong> ${escapeHtml(name)}</p>`,
+    replyTo && `<p><strong>Reply-to:</strong> ${escapeHtml(replyTo)}</p>`,
+    "<p>" + escapeHtml(message).replace(/\n/g, "<br>") + "</p>",
+  ]
+    .filter(Boolean)
+    .join("");
 
   try {
     await resend.emails.send({
@@ -52,6 +67,7 @@ export async function POST(request: Request) {
       replyTo: replyTo || undefined,
       subject,
       text,
+      html: html || undefined,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

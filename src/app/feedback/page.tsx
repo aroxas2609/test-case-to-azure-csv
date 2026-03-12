@@ -90,7 +90,9 @@ export default function FeedbackPage() {
             <p className="mt-3 text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
           )}
           {status === "sent" && (
-            <p className="mt-3 text-sm text-green-600 dark:text-green-400">Thanks! Your message was sent.</p>
+            <p className="mt-3 text-sm text-green-600 dark:text-green-400">
+              Thanks! Your message was sent. If you asked for a reply, check your inbox (and spam the first time).
+            </p>
           )}
           <button
             type="submit"
