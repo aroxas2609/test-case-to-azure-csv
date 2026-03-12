@@ -61,16 +61,16 @@ const DEFAULT_SETTINGS: CsvSettings = {
   tags: "",
 };
 
-/** Full values for CSV; dropdown shows name only (before " <") */
-const ASSIGNED_TO_OPTIONS = [
-  "ROXAS, Anthony <anthony.roxas@primaryhealthcare.com.au>",
-  "MILLWARD, Terence <Terence.Millward@primaryhealthcare.com.au>",
-  "BUHARI, Ibrahim <ibrahim.buhari1@primaryhealthcare.com.au>",
-  "Sheilla Bobadilla <sheilla.bobadilla@primaryhealthcare.com.au>",
-  "PARSI, Vani <vani.parsi@primaryhealthcare.com.au>",
-  "KULKARNI, Rajani <Rajani.Kulkarni@primaryhealthcare.com.au>",
-  "SHAH, Nancy <nancy.shah@primaryhealthcare.com.au>",
-];
+const ASSIGNED_TO_OPTIONS: string[] = (() => {
+  const raw = process.env.NEXT_PUBLIC_ASSIGNED_TO_OPTIONS;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+})();
 
 const PARSER_DEFAULT = "bdd";
 
@@ -614,9 +614,10 @@ export default function Home() {
           </div>
 
           {/* Settings: compact row */}
-          <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-300 bg-slate-200/60 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">CSV defaults</span>
-            <label className="flex flex-col gap-0.5">
+          <div className="rounded-lg border border-slate-300 bg-slate-200/60 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
+            <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">CSV defaults</div>
+            <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="flex flex-col gap-0.5">
               <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
                 Area Path
                 <FieldTooltip
@@ -628,31 +629,35 @@ export default function Home() {
                 type="text"
                 value={settings.areaPath}
                 onChange={(e) => setSettings((s) => ({ ...s, areaPath: e.target.value }))}
-                className="w-56 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
-            </label>
-            <label className="flex flex-col gap-0.5">
+              </label>
+              <label className="flex flex-col gap-0.5">
               <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
                 Assigned To
                 <FieldTooltip
                   id="tooltip-assigned-to"
-                  content="Default assignee for imported test cases."
+                  content="Pick an assignee from your org list, or leave blank."
                 />
               </span>
               <select
                 value={settings.assignedTo}
                 onChange={(e) => setSettings((s) => ({ ...s, assignedTo: e.target.value }))}
-                className="min-w-[12rem] rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                disabled={ASSIGNED_TO_OPTIONS.length === 0}
+                aria-label="Assigned To"
               >
-                <option value="">—</option>
-                {ASSIGNED_TO_OPTIONS.map((fullValue) => (
-                  <option key={fullValue} value={fullValue}>
-                    {fullValue.includes(" <") ? fullValue.split(" <")[0] : fullValue}
+                <option value="">
+                  {ASSIGNED_TO_OPTIONS.length === 0 ? "No assignees configured" : "—"}
+                </option>
+                {ASSIGNED_TO_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-0.5">
+              </label>
+              <label className="flex flex-col gap-0.5">
               <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
                 State
                 <FieldTooltip
@@ -663,14 +668,14 @@ export default function Home() {
               <select
                 value={settings.state}
                 onChange={(e) => setSettings((s) => ({ ...s, state: e.target.value }))}
-                className="rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="Design">Design</option>
                 <option value="Ready">Ready</option>
                 <option value="Closed">Closed</option>
               </select>
-            </label>
-            <label className="flex flex-col gap-0.5">
+              </label>
+              <label className="flex flex-col gap-0.5">
               <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
                 Tags
                 <FieldTooltip
@@ -683,9 +688,10 @@ export default function Home() {
                 value={settings.tags ?? ""}
                 onChange={(e) => setSettings((s) => ({ ...s, tags: e.target.value }))}
                 placeholder="e.g. Regression; Smoke"
-                className="w-40 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
-            </label>
+              </label>
+            </div>
           </div>
 
           {/* Parsed list: full width */}
