@@ -15,6 +15,7 @@ import { parserRegistry } from "@/parsers/registry";
 import type { NormalizedTestCase } from "@/types/testCase";
 import { normalizeToExport, ensureString } from "@/utils/normalizeToExport";
 import { extractTestCaseIdFromTitle } from "@/utils/extractId";
+import { normalizePastedText } from "@/utils/normalizePastedText";
 
 /** BDD sample: title line then Given/When/Then. */
 const SAMPLE_BDD = `TC01 - Request date section label
@@ -245,7 +246,9 @@ export default function Home() {
         setErrors([{ blockText: "", message: "No parser found for this template." }]);
         return;
       }
-      const result = parser.parse(rawText);
+      const normalized = normalizePastedText(rawText, parserId);
+      setRawText(normalized);
+      const result = parser.parse(normalized);
       setCases(result.cases ?? []);
       setErrors(result.blockErrors ?? []);
       setExpandedIndex(null);
@@ -907,7 +910,7 @@ export default function Home() {
                   <strong>Choose a template</strong> — Select <strong>BDD</strong> (title + Given/When/Then) or <strong>Standard</strong> (Title, Preconditions, Steps, Expected Result) from the dropdown.
                 </li>
                 <li>
-                  <strong>Paste or load test cases</strong> — Paste your test case text into the box, or click <strong>Load sample</strong> to fill in an example for the selected template. Prefix titles with a test case ID (e.g. <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">TC01 - Description</code>).
+                  <strong>Paste or load test cases</strong> — Paste your test case text into the box, or click <strong>Load sample</strong> to fill in an example. When you click <strong>Parse text</strong>, the app converts common formats (e.g. markdown bullets, different casing) into the expected format. Prefix titles with a test case ID (e.g. <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">TC01 - Description</code>).
                 </li>
                 <li>
                   <strong>Parse</strong> — Click <strong>Parse text</strong>. Parsed cases appear below; any validation issues are shown in the orange panel.
