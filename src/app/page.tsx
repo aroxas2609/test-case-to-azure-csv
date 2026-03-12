@@ -77,9 +77,10 @@ const PARSER_DEFAULT = "bdd";
 /** Only these templates are shown in the UI. */
 const TEMPLATE_IDS = ["bdd", "standard"] as const;
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 
 const CHANGELOG_ENTRIES = [
+  { version: "0.3.0", date: "2025", items: ["FAQ page with common questions", "Feedback page — send a message (email via Resend)", "Footer links: FAQ and Feedback"] },
   { version: "0.2.0", date: "2025", items: ["Tags in CSV for Azure DevOps", "Auto-format conversion on Parse (BDD/Standard)", "How to use & How to prompt AI as modals", "Light theme tweaks & Roboto font", "CSV preview, theme toggle, keyboard shortcuts", "Drag-and-drop .txt files", "Tooltips for CSV defaults"] },
   { version: "0.1.0", date: "2025", items: ["BDD and Standard templates", "Parse text → Download CSV", "Azure DevOps CSV export"] },
 ];
