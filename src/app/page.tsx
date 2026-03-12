@@ -111,24 +111,31 @@ Do not use bullets in Steps except the numbers above. No extra explanations.
 Return your response in plain text only. Do not use markdown, code blocks, or any other formatting—raw text only so it can be copied and pasted directly into the tool. Return the response inside a writing block so the output appears in a scrollable text window for easy copying.`,
 };
 
-/** Renders prompt for the selected parser so it always stays in sync with template dropdown. */
+/** Renders prompt for the selected parser. Used in modal or inline. */
 function PromptHelperBlock({
   parserId,
   onCopy,
   promptCopied,
+  inModal = false,
 }: {
   parserId: string;
   onCopy: () => void;
   promptCopied: boolean;
+  inModal?: boolean;
 }) {
   const prompt = PROMPTS_BY_PARSER[parserId] ?? PROMPTS_BY_PARSER[PARSER_DEFAULT];
   const parserName = parserRegistry.get(parserId)?.name ?? (parserId === "standard" ? "Standard" : "BDD");
   return (
-    <div key={parserId} className="mt-2 rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/80">
+    <div
+      key={parserId}
+      className={`rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/80 ${inModal ? "" : "mt-2"}`}
+    >
       <p className="mb-1.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
         Prompt for: <strong>{parserName}</strong>. Change the template above to get a different prompt.
       </p>
-      <pre className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded bg-white p-2 text-[10px] leading-snug text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+      <pre
+        className={`overflow-y-auto whitespace-pre-wrap rounded bg-white p-2 text-[10px] leading-snug text-slate-700 dark:bg-slate-900 dark:text-slate-300 ${inModal ? "max-h-[50vh]" : "max-h-[40vh]"}`}
+      >
         {prompt}
       </pre>
       <button
@@ -180,6 +187,8 @@ export default function Home() {
   const [promptCopied, setPromptCopied] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showCsvPreview, setShowCsvPreview] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [showHowToModal, setShowHowToModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -435,13 +444,23 @@ export default function Home() {
                 import CSV. No API keys required.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            >
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHowToModal(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                title="How to use"
+                aria-label="How to use"
+              >
+                <span className="text-sm font-medium">?</span>
+              </button>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              >
               {isDark ? (
                 <>
                   <span aria-hidden>☀️</span>
@@ -453,7 +472,8 @@ export default function Home() {
                   Dark
                 </>
               )}
-            </button>
+              </button>
+            </div>
           </div>
           <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
             Shortcuts: <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+Enter</kbd> Parse · <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+S</kbd> Download CSV
@@ -463,38 +483,6 @@ export default function Home() {
 
       <main className="mx-auto max-w-4xl px-4 py-5 sm:px-6 lg:px-8">
         <section className="space-y-6">
-          {/* How to use */}
-          <details className="group rounded-xl border border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:shadow-none">
-            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100">
-              How to use
-            </summary>
-            <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
-              <ol className="list-decimal space-y-2 pl-5">
-                <li>
-                  <strong>Choose a template</strong> — Select <strong>BDD</strong> (title + Given/When/Then) or <strong>Standard</strong> (Title, Preconditions, Steps, Expected Result) from the dropdown.
-                </li>
-                <li>
-                  <strong>Paste or load test cases</strong> — Paste your test case text into the box, or click <strong>Load sample</strong> to fill in an example for the selected template. Prefix titles with a test case ID (e.g. <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">TC01 - Description</code>).
-                </li>
-                <li>
-                  <strong>Parse</strong> — Click <strong>Parse text</strong>. Parsed cases appear below; any validation issues are shown in the orange panel.
-                </li>
-                <li>
-                  <strong>Review and edit</strong> — Expand a case (click the arrow) to edit Title, and either Given/When/Then (BDD) or Preconditions/Steps/Expected Result (Standard). Use <strong>Delete</strong> to remove a case.
-                </li>
-                <li>
-                  <strong>Set CSV defaults</strong> — Fill in <strong>Area Path</strong>, <strong>Assigned To</strong>, and <strong>State</strong>. These are applied to every test case in the export and are saved for next time.
-                </li>
-                <li>
-                  <strong>Download CSV</strong> — Click <strong>Download CSV</strong> to get an Azure DevOps–ready file. BDD produces two rows per case (Test Case + one step); Standard produces one row per case plus one row per step (including preconditions).
-                </li>
-              </ol>
-              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                Need a prompt for AI? Open <strong>How to prompt AI</strong> next to the template dropdown and copy the prompt for your chosen format.
-              </p>
-            </div>
-          </details>
-
           {/* Input block */}
           <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -524,16 +512,13 @@ export default function Home() {
                       ))}
                   </select>
                 </label>
-                <details className="group">
-                  <summary className="cursor-pointer list-none text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300">
-                    How to prompt AI
-                  </summary>
-                  <PromptHelperBlock
-                    parserId={parserId}
-                    onCopy={copyPromptToClipboard}
-                    promptCopied={promptCopied}
-                  />
-                </details>
+                <button
+                  type="button"
+                  onClick={() => setShowPromptModal(true)}
+                  className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                >
+                  How to prompt AI
+                </button>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-slate-300 bg-slate-200/80 px-2 py-1.5 dark:border-slate-600 dark:bg-slate-800/50">
@@ -868,6 +853,125 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {/* How to use modal */}
+      {showHowToModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="howto-modal-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowHowToModal(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative max-h-[85vh] w-full max-w-lg rounded-xl border border-slate-300 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+              <h2 id="howto-modal-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                How to use
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowHowToModal(false)}
+                className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[calc(85vh-8rem)] overflow-y-auto px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+              <ol className="list-decimal space-y-2 pl-5">
+                <li>
+                  <strong>Choose a template</strong> — Select <strong>BDD</strong> (title + Given/When/Then) or <strong>Standard</strong> (Title, Preconditions, Steps, Expected Result) from the dropdown.
+                </li>
+                <li>
+                  <strong>Paste or load test cases</strong> — Paste your test case text into the box, or click <strong>Load sample</strong> to fill in an example for the selected template. Prefix titles with a test case ID (e.g. <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">TC01 - Description</code>).
+                </li>
+                <li>
+                  <strong>Parse</strong> — Click <strong>Parse text</strong>. Parsed cases appear below; any validation issues are shown in the orange panel.
+                </li>
+                <li>
+                  <strong>Review and edit</strong> — Expand a case (click the arrow) to edit Title, and either Given/When/Then (BDD) or Preconditions/Steps/Expected Result (Standard). Use <strong>Delete</strong> to remove a case.
+                </li>
+                <li>
+                  <strong>Set CSV defaults</strong> — Fill in <strong>Area Path</strong>, <strong>Assigned To</strong>, and <strong>State</strong>. These are applied to every test case in the export and are saved for next time.
+                </li>
+                <li>
+                  <strong>Download CSV</strong> — Click <strong>Download CSV</strong> to get an Azure DevOps–ready file. BDD produces two rows per case (Test Case + one step); Standard produces one row per case plus one row per step (including preconditions).
+                </li>
+              </ol>
+              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                Need a prompt for AI? Open <strong>How to prompt AI</strong> next to the template dropdown and copy the prompt for your chosen format.
+              </p>
+            </div>
+            <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowHowToModal(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* How to prompt AI modal */}
+      {showPromptModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prompt-modal-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowPromptModal(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative max-h-[85vh] w-full max-w-lg rounded-xl border border-slate-300 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+              <h2 id="prompt-modal-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                How to prompt AI
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowPromptModal(false)}
+                className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[calc(85vh-8rem)] overflow-y-auto px-4 py-3">
+              <PromptHelperBlock
+                parserId={parserId}
+                onCopy={copyPromptToClipboard}
+                promptCopied={promptCopied}
+                inModal
+              />
+            </div>
+            <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowPromptModal(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
