@@ -8,7 +8,7 @@ export type CsvSettings = {
   state: string;
 };
 
-const HEADERS = [
+export const CSV_HEADERS = [
   "ID",
   "Work Item Type",
   "Title",
@@ -20,9 +20,11 @@ const HEADERS = [
   "State",
 ] as const;
 
+export type CsvRow = Record<(typeof CSV_HEADERS)[number], string>;
+
 /** Given/When/Then format: two rows per case (Test Case + one combined step). */
-export function buildAzureCsv(cases: ExportTestCase[], settings: CsvSettings): string {
-  const rows: Record<(typeof HEADERS)[number], string>[] = [];
+export function buildAzureCsvRows(cases: ExportTestCase[], settings: CsvSettings): CsvRow[] {
+  const rows: CsvRow[] = [];
 
   for (const tc of cases) {
     rows.push({
@@ -54,19 +56,20 @@ export function buildAzureCsv(cases: ExportTestCase[], settings: CsvSettings): s
     });
   }
 
-  return stringify(rows, {
+  return rows;
+}
+
+export function buildAzureCsv(cases: ExportTestCase[], settings: CsvSettings): string {
+  return stringify(buildAzureCsvRows(cases, settings), {
     header: true,
-    columns: HEADERS as unknown as string[],
+    columns: CSV_HEADERS as unknown as string[],
     bom: true,
   });
 }
 
 /** Standard format: one Test Case row plus one row per step (Preconditions as step 1 when present, then Steps, Step Expected on last step). */
-export function buildAzureCsvStandard(
-  cases: NormalizedTestCase[],
-  settings: CsvSettings
-): string {
-  const rows: Record<(typeof HEADERS)[number], string>[] = [];
+export function buildAzureCsvStandardRows(cases: NormalizedTestCase[], settings: CsvSettings): CsvRow[] {
+  const rows: CsvRow[] = [];
 
   for (const tc of cases) {
     rows.push({
@@ -136,9 +139,13 @@ export function buildAzureCsvStandard(
     });
   }
 
-  return stringify(rows, {
+  return rows;
+}
+
+export function buildAzureCsvStandard(cases: NormalizedTestCase[], settings: CsvSettings): string {
+  return stringify(buildAzureCsvStandardRows(cases, settings), {
     header: true,
-    columns: HEADERS as unknown as string[],
+    columns: CSV_HEADERS as unknown as string[],
     bom: true,
   });
 }

@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildAzureCsv, buildAzureCsvStandard, type CsvSettings } from "@/lib/csv";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  buildAzureCsv,
+  buildAzureCsvStandard,
+  buildAzureCsvRows,
+  buildAzureCsvStandardRows,
+  CSV_HEADERS,
+  type CsvSettings,
+  type CsvRow,
+} from "@/lib/csv";
 import { loadRawText, saveRawText, loadSettings, saveSettings } from "@/lib/storage";
 import { parserRegistry } from "@/parsers/registry";
 import type { NormalizedTestCase } from "@/types/testCase";
@@ -138,6 +146,30 @@ function PromptHelperBlock({
   );
 }
 
+/** Small "What's this?" tooltip next to a field label. Opens to the right to avoid overlapping content above. */
+function FieldTooltip({ content, id }: { content: string; id: string }) {
+  return (
+    <span className="group relative ml-0.5 inline-flex align-middle">
+      <button
+        type="button"
+        tabIndex={0}
+        aria-label="What's this?"
+        aria-describedby={id}
+        className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-slate-400 text-[10px] font-medium text-slate-500 hover:border-slate-600 hover:text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-500 dark:text-slate-400 dark:hover:border-slate-400 dark:hover:text-slate-300"
+      >
+        ?
+      </button>
+      <span
+        id={id}
+        role="tooltip"
+        className="pointer-events-none absolute left-full top-0 z-20 ml-1.5 hidden w-[11rem] rounded border border-slate-200 bg-slate-900 px-2 py-1 text-[11px] font-normal leading-snug text-white shadow-lg dark:border-slate-600 dark:bg-slate-800 group-hover:block group-focus-within:block"
+      >
+        {content}
+      </span>
+    </span>
+  );
+}
+
 export default function Home() {
   const [rawText, setRawText] = useState<string>("");
   const [settings, setSettings] = useState<CsvSettings>(DEFAULT_SETTINGS);
@@ -147,7 +179,31 @@ export default function Home() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [promptCopied, setPromptCopied] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [showCsvPreview, setShowCsvPreview] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle("dark");
+    const nowDark = document.documentElement.classList.contains("dark");
+    localStorage.setItem("theme", nowDark ? "dark" : "light");
+    setIsDark(nowDark);
+  };
+
+
+  const csvPreviewRows: CsvRow[] = useMemo(() => {
+    if (cases.length === 0) return [];
+    return parserId === "standard"
+      ? buildAzureCsvStandardRows(cases, settings)
+      : buildAzureCsvRows(
+          cases.map((tc, i) => normalizeToExport(tc, i)),
+          settings
+        );
+  }, [cases, parserId, settings]);
 
   useEffect(() => {
     const storedText = loadRawText();
@@ -172,7 +228,7 @@ export default function Home() {
     [cases.length, errors.length]
   );
 
-  const handleParse = () => {
+  const handleParse = useCallback(() => {
     try {
       const parser = parserRegistry.get(parserId) ?? parserRegistry.get(PARSER_DEFAULT);
       if (!parser) {
@@ -188,9 +244,9 @@ export default function Home() {
       setErrors([{ blockText: rawText.slice(0, 200), message }]);
       setCases([]);
     }
-  };
+  }, [parserId, rawText]);
 
-  const handleDownloadCsv = () => {
+  const handleDownloadCsv = useCallback(() => {
     if (cases.length === 0) return;
     const csv =
       parserId === "standard"
@@ -206,7 +262,23 @@ export default function Home() {
     a.download = "azure-devops-test-cases.csv";
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [cases, parserId, settings]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        e.preventDefault();
+        handleParse();
+        return;
+      }
+      if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+        if (cases.length > 0) handleDownloadCsv();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleParse, handleDownloadCsv, cases.length]);
 
   const updateCase = (index: number, updates: Partial<NormalizedTestCase>) => {
     setCases((prev) => {
@@ -353,12 +425,38 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            Test Case Text to Azure DevOps CSV Converter
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Paste BDD or Standard test cases, review them, and download an Azure DevOps bulk
-            import CSV. No API keys required.
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+                Test Case Text to Azure DevOps CSV Converter
+              </h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                Paste BDD or Standard test cases, review them, and download an Azure DevOps bulk
+                import CSV. No API keys required.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDark ? (
+                <>
+                  <span aria-hidden>☀️</span>
+                  Light
+                </>
+              ) : (
+                <>
+                  <span aria-hidden>🌙</span>
+                  Dark
+                </>
+              )}
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+            Shortcuts: <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+Enter</kbd> Parse · <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">Ctrl+S</kbd> Download CSV
           </p>
         </div>
       </header>
@@ -403,7 +501,13 @@ export default function Home() {
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Paste test cases</h2>
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Template</span>
+                  <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+                    Template
+                    <FieldTooltip
+                      id="tooltip-template"
+                      content="Format of your text: BDD or Standard."
+                    />
+                  </span>
                   <select
                     value={parserId}
                     onChange={handleTemplateChange}
@@ -514,7 +618,13 @@ export default function Home() {
           <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">CSV defaults</span>
             <label className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">Area Path</span>
+              <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+                Area Path
+                <FieldTooltip
+                  id="tooltip-area-path"
+                  content="Azure path for the work item (e.g. Project\\Area)."
+                />
+              </span>
               <input
                 type="text"
                 value={settings.areaPath}
@@ -523,7 +633,13 @@ export default function Home() {
               />
             </label>
             <label className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">Assigned To</span>
+              <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+                Assigned To
+                <FieldTooltip
+                  id="tooltip-assigned-to"
+                  content="Default assignee for imported test cases."
+                />
+              </span>
               <select
                 value={settings.assignedTo}
                 onChange={(e) => setSettings((s) => ({ ...s, assignedTo: e.target.value }))}
@@ -538,7 +654,13 @@ export default function Home() {
               </select>
             </label>
             <label className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">State</span>
+              <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
+                State
+                <FieldTooltip
+                  id="tooltip-state"
+                  content="Initial state for each test case."
+                />
+              </span>
               <select
                 value={settings.state}
                 onChange={(e) => setSettings((s) => ({ ...s, state: e.target.value }))}
@@ -555,20 +677,75 @@ export default function Home() {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Parsed test cases</h2>
-              <button
-                type="button"
-                disabled={cases.length === 0}
-                onClick={handleDownloadCsv}
-                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-500 dark:hover:bg-primary-400"
-              >
-                Download CSV
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={cases.length === 0}
+                  onClick={() => setShowCsvPreview((v) => !v)}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  aria-pressed={showCsvPreview}
+                >
+                  {showCsvPreview ? "Hide CSV preview" : "Preview CSV"}
+                </button>
+                <button
+                  type="button"
+                  disabled={cases.length === 0}
+                  onClick={handleDownloadCsv}
+                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-500 dark:hover:bg-primary-400"
+                >
+                  Download CSV
+                </button>
+              </div>
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {parserId === "standard"
                 ? "Each case → one row + one row per step. Edit or delete below."
                 : "Each case → two CSV rows (Test Case + Test Step). Edit or delete below."}
             </p>
+
+            {showCsvPreview && csvPreviewRows.length > 0 && (
+              <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="max-h-[40vh] overflow-auto">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800">
+                      <tr>
+                        {CSV_HEADERS.map((h) => (
+                          <th
+                            key={h}
+                            className="whitespace-nowrap border-b border-slate-200 px-2 py-1.5 font-medium text-slate-700 dark:border-slate-600 dark:text-slate-300"
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreviewRows.map((row, i) => (
+                        <tr
+                          key={i}
+                          className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        >
+                          {CSV_HEADERS.map((h) => (
+                            <td
+                              key={h}
+                              className="max-w-[12rem] border-r border-slate-100 px-2 py-1.5 text-slate-800 last:border-r-0 dark:border-slate-700/50 dark:text-slate-200"
+                              title={row[h]}
+                            >
+                              <span className="block max-h-16 overflow-y-auto whitespace-pre-wrap break-words">
+                                {row[h] || "—"}
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="border-t border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+                  {csvPreviewRows.length} row{csvPreviewRows.length !== 1 ? "s" : ""} (same as downloaded CSV)
+                </p>
+              </div>
+            )}
 
             {cases.length === 0 ? (
               <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
