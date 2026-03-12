@@ -61,17 +61,6 @@ const DEFAULT_SETTINGS: CsvSettings = {
   tags: "",
 };
 
-const ASSIGNED_TO_OPTIONS: string[] = (() => {
-  const raw = process.env.NEXT_PUBLIC_ASSIGNED_TO_OPTIONS;
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-})();
-
 const PARSER_DEFAULT = "bdd";
 
 /** Only these templates are shown in the UI. */
@@ -202,6 +191,10 @@ export default function Home() {
   const [showHowToModal, setShowHowToModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [assignedToOptions, setAssignedToOptions] = useState<string[]>([]);
+  const [assigneesPassword, setAssigneesPassword] = useState("");
+  const [assigneesError, setAssigneesError] = useState<string>("");
+  const [assigneesLoading, setAssigneesLoading] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -214,6 +207,31 @@ export default function Home() {
     localStorage.setItem("theme", nowDark ? "dark" : "light");
     setIsDark(nowDark);
   };
+
+  const unlockAssignees = useCallback(async () => {
+    setAssigneesLoading(true);
+    setAssigneesError("");
+    try {
+      const res = await fetch("/api/assignees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: assigneesPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAssignedToOptions([]);
+        setAssigneesError(data.message || "Incorrect password.");
+        return;
+      }
+      const opts = Array.isArray(data.options) ? data.options.filter((x: unknown) => typeof x === "string") : [];
+      setAssignedToOptions(opts);
+      setAssigneesPassword("");
+    } catch {
+      setAssigneesError("Network error. Please try again.");
+    } finally {
+      setAssigneesLoading(false);
+    }
+  }, [assigneesPassword]);
 
 
   const csvPreviewRows: CsvRow[] = useMemo(() => {
@@ -637,20 +655,42 @@ export default function Home() {
                 Assigned To
                 <FieldTooltip
                   id="tooltip-assigned-to"
-                  content="Pick an assignee from your org list, or leave blank."
+                  content="Unlock the assignee list with a password, then select or leave blank."
                 />
               </span>
+              {assignedToOptions.length === 0 && (
+                <div className="mb-1 flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={assigneesPassword}
+                    onChange={(e) => setAssigneesPassword(e.target.value)}
+                    placeholder="Password to unlock"
+                    className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={unlockAssignees}
+                    disabled={assigneesLoading || !assigneesPassword.trim()}
+                    className="shrink-0 rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    {assigneesLoading ? "Unlocking…" : "Unlock"}
+                  </button>
+                </div>
+              )}
+              {assigneesError && (
+                <div className="mb-1 text-[11px] text-red-600 dark:text-red-400">{assigneesError}</div>
+              )}
               <select
                 value={settings.assignedTo}
                 onChange={(e) => setSettings((s) => ({ ...s, assignedTo: e.target.value }))}
                 className="w-full rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                disabled={ASSIGNED_TO_OPTIONS.length === 0}
+                disabled={assignedToOptions.length === 0}
                 aria-label="Assigned To"
               >
                 <option value="">
-                  {ASSIGNED_TO_OPTIONS.length === 0 ? "No assignees configured" : "—"}
+                  {assignedToOptions.length === 0 ? "Locked" : "—"}
                 </option>
-                {ASSIGNED_TO_OPTIONS.map((opt) => (
+                {assignedToOptions.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>
