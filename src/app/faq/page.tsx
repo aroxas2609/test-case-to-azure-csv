@@ -59,6 +59,8 @@ export default function FaqPage() {
         <div className="mx-auto max-w-3xl px-4 text-center text-xs text-slate-500 dark:text-slate-400 sm:px-6 lg:px-8">
           <Link href="/" className="hover:text-slate-700 dark:hover:text-slate-300">Home</Link>
           {" · "}
+          <Link href="/import-guide" className="hover:text-slate-700 dark:hover:text-slate-300">Import guide</Link>
+          {" · "}
           <Link href="/feedback" className="hover:text-slate-700 dark:hover:text-slate-300">Feedback</Link>
         </div>
       </footer>

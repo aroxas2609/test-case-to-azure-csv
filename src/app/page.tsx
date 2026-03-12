@@ -984,6 +984,8 @@ export default function Home() {
           {" · "}
           <Link href="/faq" className="hover:text-slate-700 dark:hover:text-slate-300">FAQ</Link>
           {" · "}
+          <Link href="/import-guide" className="hover:text-slate-700 dark:hover:text-slate-300">Import guide</Link>
+          {" · "}
           <Link href="/feedback" className="hover:text-slate-700 dark:hover:text-slate-300">Feedback</Link>
         </div>
       </footer>
