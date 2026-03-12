@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Roboto } from "next/font/google";
 import "./globals.css";
+
+const roboto = Roboto({
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Test Case Text to Azure DevOps CSV Converter",
@@ -13,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={roboto.variable} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -21,7 +29,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100">
+      <body className="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased dark:bg-slate-900 dark:text-slate-100">
         {children}
       </body>
     </html>

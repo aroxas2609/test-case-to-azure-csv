@@ -5,6 +5,9 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-roboto)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
         primary: {
           50: "#ecfeff",

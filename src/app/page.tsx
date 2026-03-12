@@ -422,8 +422,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/80">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+      <header className="border-b border-slate-300 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -464,7 +464,7 @@ export default function Home() {
       <main className="mx-auto max-w-4xl px-4 py-5 sm:px-6 lg:px-8">
         <section className="space-y-6">
           {/* How to use */}
-          <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
+          <details className="group rounded-xl border border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:shadow-none">
             <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100">
               How to use
             </summary>
@@ -496,7 +496,7 @@ export default function Home() {
           </details>
 
           {/* Input block */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Paste test cases</h2>
               <div className="flex flex-wrap items-center gap-3">
@@ -511,7 +511,7 @@ export default function Home() {
                   <select
                     value={parserId}
                     onChange={handleTemplateChange}
-                    className="rounded border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                    className="rounded border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                     aria-label="Select test case template"
                   >
                     {parserRegistry
@@ -536,7 +536,7 @@ export default function Home() {
                 </details>
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-slate-300 bg-slate-100 px-2 py-1.5 dark:border-slate-600 dark:bg-slate-800/50">
+            <div className="mt-3 flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-slate-300 bg-slate-200/80 px-2 py-1.5 dark:border-slate-600 dark:bg-slate-800/50">
               <span className="mr-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">Format:</span>
               <button
                 type="button"
@@ -569,7 +569,7 @@ export default function Home() {
                 onChange={(e) => setRawText(e.target.value)}
                 rows={8}
                 placeholder="Paste test cases here or drag and drop a .txt file (BDD or Standard template)."
-                className="w-full resize-y rounded-b-lg rounded-t-none border border-slate-300 border-t-0 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                className="w-full resize-y rounded-b-lg rounded-t-none border border-slate-300 border-t-0 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -615,7 +615,7 @@ export default function Home() {
           </div>
 
           {/* Settings: compact row */}
-          <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
+          <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-300 bg-slate-200/60 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">CSV defaults</span>
             <label className="flex flex-col gap-0.5">
               <span className="flex items-center text-[11px] text-slate-500 dark:text-slate-400">
@@ -629,7 +629,7 @@ export default function Home() {
                 type="text"
                 value={settings.areaPath}
                 onChange={(e) => setSettings((s) => ({ ...s, areaPath: e.target.value }))}
-                className="w-56 rounded border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-56 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
             </label>
             <label className="flex flex-col gap-0.5">
@@ -643,7 +643,7 @@ export default function Home() {
               <select
                 value={settings.assignedTo}
                 onChange={(e) => setSettings((s) => ({ ...s, assignedTo: e.target.value }))}
-                className="min-w-[12rem] rounded border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="min-w-[12rem] rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">—</option>
                 {ASSIGNED_TO_OPTIONS.map((fullValue) => (
@@ -664,7 +664,7 @@ export default function Home() {
               <select
                 value={settings.state}
                 onChange={(e) => setSettings((s) => ({ ...s, state: e.target.value }))}
-                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="Design">Design</option>
                 <option value="Ready">Ready</option>
@@ -674,7 +674,7 @@ export default function Home() {
           </div>
 
           {/* Parsed list: full width */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Parsed test cases</h2>
               <div className="flex gap-2">
@@ -704,7 +704,7 @@ export default function Home() {
             </p>
 
             {showCsvPreview && csvPreviewRows.length > 0 && (
-              <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="mt-4 overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700">
                 <div className="max-h-[40vh] overflow-auto">
                   <table className="w-full border-collapse text-left text-xs">
                     <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800">
@@ -752,14 +752,14 @@ export default function Home() {
                 No parsed cases yet. Paste text above and click <strong>Parse text</strong>.
               </p>
             ) : (
-                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-700">
                   <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                     {cases.map((tc, index) => {
                       const testCaseId = tc.id ?? extractTestCaseIdFromTitle(tc.title);
                       return (
                         <li
                           key={`${testCaseId}-${index}`}
-                          className="bg-slate-50/50 dark:bg-slate-800/50"
+                          className="bg-slate-100 dark:bg-slate-800/50"
                         >
                           <div className="flex items-center gap-2 px-2 py-1.5">
                             <button
@@ -795,7 +795,7 @@ export default function Home() {
                             </button>
                           </div>
                           {expandedIndex === index && (
-                            <div className="space-y-2 border-t border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                            <div className="space-y-2 border-t border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
                               {tc.errors && tc.errors.length > 0 && (
                                 <div className="rounded border border-amber-200 bg-amber-50 p-1.5 text-[11px] text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
                                   {tc.errors.join(" ")}
@@ -888,7 +888,7 @@ function LabeledMiniInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
     </label>
   );
@@ -912,7 +912,7 @@ function LabeledMiniTextarea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
-        className="min-h-0 resize-y rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="min-h-0 resize-y rounded-md border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
     </label>
   );
