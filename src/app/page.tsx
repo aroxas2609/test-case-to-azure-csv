@@ -260,15 +260,9 @@ export default function Home() {
   }, [cases, parserId, settings]);
 
   useEffect(() => {
-    const storedText = loadRawText();
-    if (storedText) setRawText(storedText);
     const storedSettings = loadSettings();
     if (storedSettings) setSettings((prev) => ({ ...prev, ...storedSettings }));
   }, []);
-
-  useEffect(() => {
-    saveRawText(rawText);
-  }, [rawText]);
 
   useEffect(() => {
     saveSettings(settings);
