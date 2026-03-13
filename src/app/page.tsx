@@ -11,6 +11,7 @@ import {
   type CsvSettings,
   type CsvRow,
 } from "@/lib/csv";
+import { buildExcelBlob } from "@/lib/excel";
 import { loadRawText, saveRawText, loadSettings, saveSettings } from "@/lib/storage";
 import { parserRegistry } from "@/parsers/registry";
 import type { NormalizedTestCase } from "@/types/testCase";
@@ -313,6 +314,17 @@ export default function Home() {
     a.click();
     URL.revokeObjectURL(url);
   }, [cases, parserId, settings]);
+
+  const handleDownloadExcel = useCallback(async () => {
+    if (cases.length === 0 || csvPreviewRows.length === 0) return;
+    const blob = await buildExcelBlob(csvPreviewRows);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "azure-devops-test-cases.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [cases.length, csvPreviewRows]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -791,6 +803,15 @@ export default function Home() {
                   className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-500 dark:hover:bg-primary-400"
                 >
                   Download CSV
+                </button>
+                <button
+                  type="button"
+                  disabled={cases.length === 0}
+                  onClick={handleDownloadExcel}
+                  className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                  title="Download test cases as Excel (.xlsx) with formatted table"
+                >
+                  Export to Excel
                 </button>
               </div>
             </div>
