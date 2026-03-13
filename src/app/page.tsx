@@ -326,6 +326,15 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }, [cases.length, csvPreviewRows]);
 
+  const [copyListFeedback, setCopyListFeedback] = useState(false);
+  const handleCopyList = useCallback(async () => {
+    if (cases.length === 0) return;
+    const titles = cases.map((c) => c.title ?? "").join("\n");
+    await navigator.clipboard.writeText(titles);
+    setCopyListFeedback(true);
+    setTimeout(() => setCopyListFeedback(false), 2000);
+  }, [cases]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === "Enter") {
@@ -812,6 +821,15 @@ export default function Home() {
                   title="Download test cases as Excel (.xlsx) with formatted table"
                 >
                   Export to Excel
+                </button>
+                <button
+                  type="button"
+                  disabled={cases.length === 0}
+                  onClick={handleCopyList}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title="Copy list of test case titles (one per line) for pasting into a table"
+                >
+                  {copyListFeedback ? "Copied!" : "Copy list"}
                 </button>
               </div>
             </div>
