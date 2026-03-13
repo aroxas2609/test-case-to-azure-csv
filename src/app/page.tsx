@@ -18,6 +18,7 @@ import type { NormalizedTestCase } from "@/types/testCase";
 import { normalizeToExport, ensureString } from "@/utils/normalizeToExport";
 import { extractTestCaseIdFromTitle } from "@/utils/extractId";
 import { normalizePastedText } from "@/utils/normalizePastedText";
+import { suggestBlockFix, findBlockRange } from "@/lib/autoFix";
 
 type HistorySnapshot = { cases: NormalizedTestCase[]; rawText: string };
 
@@ -104,9 +105,19 @@ const PARSER_DEFAULT = "bdd";
 /** Only these templates are shown in the UI. */
 const TEMPLATE_IDS = ["bdd", "standard"] as const;
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
 
 const CHANGELOG_ENTRIES = [
+  {
+    version: "0.5.0",
+    date: "2025",
+    items: [
+      "Undo / Redo for both raw text and parsed test cases",
+      "Validation issues highlight and auto-scroll to the exact text block",
+      "Auto fix for common validation issues (adds missing Given / When / Then and Standard fields)",
+      "Reminder banner that auto-fixed steps are placeholders and must be reviewed before export",
+    ],
+  },
   {
     version: "0.4.0",
     date: "2025",
@@ -250,6 +261,7 @@ export default function Home() {
   const [assigneesPassword, setAssigneesPassword] = useState("");
   const [assigneesError, setAssigneesError] = useState<string>("");
   const [assigneesLoading, setAssigneesLoading] = useState(false);
+  const [showAutoFixNotice, setShowAutoFixNotice] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [caseDragIndex, setCaseDragIndex] = useState<number | null>(null);
 
@@ -389,6 +401,30 @@ export default function Home() {
       applySnapshot({ cases: [], rawText: normalizePastedText(rawText, parserId) });
     }
   }, [parserId, rawText, applySnapshot]);
+
+  const handleAutoFix = useCallback(
+    (err: { blockText: string; message: string }, errorIndex: number) => {
+      const range = findBlockRange(rawText, err.blockText, parserId, errorIndex);
+      if (!range) return;
+      const fullBlock = rawText.slice(range.start, range.end);
+      const fix = suggestBlockFix(parserId, fullBlock, err.message);
+      if (!fix) return;
+      const newRawText = rawText.slice(0, range.start) + fix + rawText.slice(range.end);
+      const normalized = normalizePastedText(newRawText, parserId);
+      const parser = parserRegistry.get(parserId) ?? parserRegistry.get(PARSER_DEFAULT);
+      if (!parser) return;
+      try {
+        const result = parser.parse(normalized);
+        applySnapshot({ cases: result.cases ?? [], rawText: normalized });
+        setErrors(result.blockErrors ?? []);
+        setExpandedIndex(null);
+        setShowAutoFixNotice(true);
+      } catch {
+        setErrors([{ blockText: err.blockText, message: "Fix applied; re-parse failed." }]);
+      }
+    },
+    [parserId, rawText, applySnapshot]
+  );
 
   const handleDownloadCsv = useCallback(() => {
     if (cases.length === 0) return;
@@ -854,20 +890,32 @@ export default function Home() {
               </div>
             </div>
             {errors.length > 0 && (
-              <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
-                <p className="font-medium">Validation issues (click to highlight in pasted text)</p>
+              <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+                <p className="font-medium">Validation issues</p>
                 {errors.map((err, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    type="button"
-                    onClick={() => focusErrorBlock(err.blockText)}
-                    className="mt-1 flex w-full items-start gap-1 rounded px-1 py-0.5 text-left hover:bg-amber-100/70 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:hover:bg-amber-900/40"
+                    className="mt-1.5 flex flex-wrap items-center gap-1.5 rounded border border-amber-200/60 bg-white/50 p-1.5 dark:border-amber-700/50 dark:bg-amber-900/10"
                   >
-                    <span className="mt-[1px] shrink-0 rounded bg-amber-200 px-1 text-[9px] font-semibold uppercase tracking-wide text-amber-900 dark:bg-amber-800 dark:text-amber-100">
-                      View
-                    </span>
-                    <span>{err.message}</span>
-                  </button>
+                    <span className="min-w-0 flex-1 text-amber-900 dark:text-amber-100">{err.message}</span>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => focusErrorBlock(err.blockText)}
+                        className="rounded border border-amber-300 bg-amber-100/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-200/80 dark:border-amber-600 dark:bg-amber-800/50 dark:text-amber-100 dark:hover:bg-amber-700/50"
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAutoFix(err, idx)}
+                        className="rounded border border-emerald-400 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-100 dark:hover:bg-emerald-800/50"
+                        title="Try to auto-generate a fix for this block"
+                      >
+                        Auto fix
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -1047,6 +1095,27 @@ export default function Home() {
                 </button>
               </div>
             </div>
+            {showAutoFixNotice && (
+              <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-50">
+                <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[10px] font-semibold">
+                  !
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">Auto‑fixed steps need review</p>
+                  <p className="mt-0.5 text-[11px]">
+                    Placeholder <span className="font-semibold">Given / When / Then</span> lines were added. Please review and add full details before exporting.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAutoFixNotice(false)}
+                  className="ml-2 text-[11px] text-amber-700 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-50"
+                  aria-label="Dismiss auto-fix review notice"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {parserId === "standard"
                 ? "Each case → one row + one row per step. Edit or delete below."
