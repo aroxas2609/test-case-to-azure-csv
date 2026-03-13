@@ -12,12 +12,49 @@ import {
   type CsvRow,
 } from "@/lib/csv";
 import { buildExcelBlob } from "@/lib/excel";
-import { loadRawText, saveRawText, loadSettings, saveSettings } from "@/lib/storage";
+import { loadRawText, saveRawText, loadSettings, saveSettings, loadCases, saveCases } from "@/lib/storage";
 import { parserRegistry } from "@/parsers/registry";
 import type { NormalizedTestCase } from "@/types/testCase";
 import { normalizeToExport, ensureString } from "@/utils/normalizeToExport";
 import { extractTestCaseIdFromTitle } from "@/utils/extractId";
 import { normalizePastedText } from "@/utils/normalizePastedText";
+
+type HistorySnapshot = { cases: NormalizedTestCase[]; rawText: string };
+
+const HISTORY_MAX = 50;
+
+function historyReducer(
+  state: { history: HistorySnapshot[]; historyIndex: number },
+  action:
+    | { type: "APPLY"; snapshot: HistorySnapshot }
+    | { type: "UNDO" }
+    | { type: "REDO" }
+    | { type: "REPLACE"; snapshot: HistorySnapshot }
+): { history: HistorySnapshot[]; historyIndex: number } {
+  switch (action.type) {
+    case "APPLY": {
+      const next = [...state.history.slice(0, state.historyIndex + 1), action.snapshot].slice(-HISTORY_MAX);
+      return { history: next, historyIndex: next.length - 1 };
+    }
+    case "UNDO":
+      return state.historyIndex > 0
+        ? { ...state, historyIndex: state.historyIndex - 1 }
+        : state;
+    case "REDO":
+      return state.historyIndex < state.history.length - 1
+        ? { ...state, historyIndex: state.historyIndex + 1 }
+        : state;
+    case "REPLACE":
+      return { history: [action.snapshot], historyIndex: 0 };
+    default:
+      return state;
+  }
+}
+
+const initialHistoryState: { history: HistorySnapshot[]; historyIndex: number } = {
+  history: [{ cases: [], rawText: "" }],
+  historyIndex: 0,
+};
 
 /** BDD sample: title line then Given/When/Then. */
 const SAMPLE_BDD = `TC01 - Request date section label
@@ -67,9 +104,19 @@ const PARSER_DEFAULT = "bdd";
 /** Only these templates are shown in the UI. */
 const TEMPLATE_IDS = ["bdd", "standard"] as const;
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.4.0";
 
 const CHANGELOG_ENTRIES = [
+  {
+    version: "0.4.0",
+    date: "2025",
+    items: [
+      "Export to Excel (.xlsx) with formatted table",
+      "Copy list button to copy test case titles for pasting into tables",
+      "Drag-and-drop to reorder parsed test cases",
+      "Automatically restore parsed test cases after a browser refresh",
+    ],
+  },
   { version: "0.3.0", date: "2025", items: ["FAQ page with common questions", "Feedback page — send a message (email via Resend)", "Footer links: FAQ and Feedback", "Password-protected Assigned To list (padlock unlock)"] },
   { version: "0.2.0", date: "2025", items: ["Tags in CSV for Azure DevOps", "Auto-format conversion on Parse (BDD/Standard)", "How to use & How to prompt AI as modals", "Light theme tweaks & Roboto font", "CSV preview, theme toggle, keyboard shortcuts", "Drag-and-drop .txt files", "Tooltips for CSV defaults"] },
   { version: "0.1.0", date: "2025", items: ["BDD and Standard templates", "Parse text → Download CSV", "Azure DevOps CSV export"] },
@@ -179,10 +226,16 @@ function FieldTooltip({ content, id }: { content: string; id: string }) {
 }
 
 export default function Home() {
-  const [rawText, setRawText] = useState<string>("");
+  const [historyState, dispatchHistory] = React.useReducer(historyReducer, initialHistoryState);
+  const { history, historyIndex } = historyState;
+  const currentSnapshot = history[historyIndex];
+  const cases = currentSnapshot.cases;
+  const rawText = currentSnapshot.rawText;
+  const snapshotRef = useRef(currentSnapshot);
+  snapshotRef.current = currentSnapshot;
+
   const [settings, setSettings] = useState<CsvSettings>(DEFAULT_SETTINGS);
   const [parserId, setParserId] = useState<string>(PARSER_DEFAULT);
-  const [cases, setCases] = useState<NormalizedTestCase[]>([]);
   const [errors, setErrors] = useState<{ blockText: string; message: string }[]>([]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -198,6 +251,27 @@ export default function Home() {
   const [assigneesError, setAssigneesError] = useState<string>("");
   const [assigneesLoading, setAssigneesLoading] = useState(false);
   const pasteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [caseDragIndex, setCaseDragIndex] = useState<number | null>(null);
+
+  const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
+    dispatchHistory({ type: "APPLY", snapshot });
+  }, []);
+  const applyCases = useCallback(
+    (updater: (prev: NormalizedTestCase[]) => NormalizedTestCase[]) => {
+      const s = snapshotRef.current;
+      applySnapshot({ ...s, cases: updater(s.cases) });
+    },
+    [applySnapshot]
+  );
+  const applyRawText = useCallback(
+    (newRawText: string) => {
+      const s = snapshotRef.current;
+      applySnapshot({ ...s, rawText: newRawText });
+    },
+    [applySnapshot]
+  );
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -263,11 +337,17 @@ export default function Home() {
   useEffect(() => {
     const storedSettings = loadSettings();
     if (storedSettings) setSettings((prev) => ({ ...prev, ...storedSettings }));
+    const storedCases = loadCases();
+    if (storedCases?.length) dispatchHistory({ type: "REPLACE", snapshot: { cases: storedCases, rawText: "" } });
   }, []);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    saveCases(cases);
+  }, [cases]);
 
   const parsedSummary = useMemo(
     () => ({
@@ -277,6 +357,20 @@ export default function Home() {
     [cases.length, errors.length]
   );
 
+  const handleUndo = useCallback(() => {
+    if (!canUndo) return;
+    dispatchHistory({ type: "UNDO" });
+    setExpandedIndex(null);
+    setErrors([]);
+  }, [canUndo]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+    dispatchHistory({ type: "REDO" });
+    setExpandedIndex(null);
+    setErrors([]);
+  }, [canRedo]);
+
   const handleParse = useCallback(() => {
     try {
       const parser = parserRegistry.get(parserId) ?? parserRegistry.get(PARSER_DEFAULT);
@@ -285,17 +379,16 @@ export default function Home() {
         return;
       }
       const normalized = normalizePastedText(rawText, parserId);
-      setRawText(normalized);
       const result = parser.parse(normalized);
-      setCases(result.cases ?? []);
+      applySnapshot({ cases: result.cases ?? [], rawText: normalized });
       setErrors(result.blockErrors ?? []);
       setExpandedIndex(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Parse failed";
       setErrors([{ blockText: rawText.slice(0, 200), message }]);
-      setCases([]);
+      applySnapshot({ cases: [], rawText: normalizePastedText(rawText, parserId) });
     }
-  }, [parserId, rawText]);
+  }, [parserId, rawText, applySnapshot]);
 
   const handleDownloadCsv = useCallback(() => {
     if (cases.length === 0) return;
@@ -335,8 +428,52 @@ export default function Home() {
     setTimeout(() => setCopyListFeedback(false), 2000);
   }, [cases]);
 
+  const handleCaseDragStart = (index: number) => (e: React.DragEvent<HTMLLIElement>) => {
+    setCaseDragIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleCaseDragOver = (index: number) => (e: React.DragEvent<HTMLLIElement>) => {
+    e.preventDefault();
+    if (caseDragIndex === null || caseDragIndex === index) return;
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleCaseDrop = (index: number) => (e: React.DragEvent<HTMLLIElement>) => {
+    e.preventDefault();
+    const from =
+      caseDragIndex !== null ? caseDragIndex : Number.parseInt(e.dataTransfer.getData("text/plain"), 10);
+    if (Number.isNaN(from) || from === index) {
+      setCaseDragIndex(null);
+      return;
+    }
+    applyCases((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setExpandedIndex((prev) => {
+      if (prev === null) return prev;
+      if (prev === from) return index;
+      if (from < index && prev > from && prev <= index) return prev - 1;
+      if (from > index && prev >= index && prev < from) return prev + 1;
+      return prev;
+    });
+    setCaseDragIndex(null);
+  };
+
+  const handleCaseDragEnd = () => {
+    setCaseDragIndex(null);
+  };
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      if (active && pasteTextareaRef.current && active === pasteTextareaRef.current) {
+        return;
+      }
       if (e.ctrlKey && e.key === "Enter") {
         e.preventDefault();
         handleParse();
@@ -345,14 +482,24 @@ export default function Home() {
       if (e.ctrlKey && e.key === "s") {
         e.preventDefault();
         if (cases.length > 0) handleDownloadCsv();
+        return;
+      }
+      if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (canUndo) handleUndo();
+        return;
+      }
+      if ((e.ctrlKey && e.key.toLowerCase() === "y") || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "z")) {
+        e.preventDefault();
+        if (canRedo) handleRedo();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleParse, handleDownloadCsv, cases.length]);
+  }, [handleParse, handleDownloadCsv, cases.length, canUndo, canRedo, handleUndo, handleRedo]);
 
   const updateCase = (index: number, updates: Partial<NormalizedTestCase>) => {
-    setCases((prev) => {
+    applyCases((prev) => {
       const next = [...prev];
       const merged = { ...next[index], ...updates };
       if (updates.title !== undefined) {
@@ -365,7 +512,7 @@ export default function Home() {
   };
 
   const deleteCase = (index: number) => {
-    setCases((prev) => prev.filter((_, i) => i !== index));
+    applyCases((prev) => prev.filter((_, i) => i !== index));
     setExpandedIndex((prev) => (prev === index ? null : prev != null && prev > index ? prev - 1 : prev));
   };
 
@@ -409,12 +556,45 @@ export default function Home() {
     e.preventDefault();
     e.stopPropagation();
     const sample = SAMPLES_BY_TEMPLATE[parserId] ?? SAMPLES_BY_TEMPLATE[PARSER_DEFAULT];
-    setRawText(sample);
+    applyRawText(sample);
   };
 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setParserId(e.currentTarget.value);
   };
+
+  const focusErrorBlock = useCallback(
+    (blockText: string) => {
+      const ta = pasteTextareaRef.current;
+      if (!ta || !blockText) return;
+      const value = rawText;
+      const trimmed = blockText.trim();
+      if (!trimmed) return;
+
+      let start = value.indexOf(trimmed);
+      if (start === -1) {
+        const firstLine = trimmed.split(/\n/)[0]?.trim() ?? "";
+        if (!firstLine) return;
+        start = value.indexOf(firstLine);
+        if (start === -1) return;
+      }
+      const end = start + trimmed.length;
+
+      requestAnimationFrame(() => {
+        ta.focus();
+        ta.setSelectionRange(start, end);
+        const before = value.slice(0, start);
+        const lineIndex = before.split(/\n/).length - 1;
+        const totalLines = Math.max(value.split(/\n/).length, 1);
+        const ratio = Math.min(Math.max(lineIndex / totalLines, 0), 1);
+        const maxScroll = ta.scrollHeight - ta.clientHeight;
+        if (maxScroll > 0) {
+          ta.scrollTop = ratio * maxScroll;
+        }
+      });
+    },
+    [rawText]
+  );
 
   const applyFormat = (wrapper: { before: string; after: string } | null, listPrefix: ((line: string, i: number) => string) | null) => {
     const ta = pasteTextareaRef.current;
@@ -427,7 +607,7 @@ export default function Home() {
       const selected = value.slice(start, end);
       const after = value.slice(end);
       const newValue = before + wrapper.before + selected + wrapper.after + after;
-      setRawText(newValue);
+      applyRawText(newValue);
       const newStart = start + wrapper.before.length;
       const newEnd = newStart + selected.length;
       requestAnimationFrame(() => {
@@ -452,7 +632,7 @@ export default function Home() {
         newStart = start;
         newEnd = start + inserted.length;
       }
-      setRawText(newText);
+      applyRawText(newText);
       requestAnimationFrame(() => {
         pasteTextareaRef.current?.setSelectionRange(newStart, newEnd);
         pasteTextareaRef.current?.focus();
@@ -487,7 +667,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
-      setRawText(text);
+      applyRawText(text);
     };
     reader.readAsText(file);
   };
@@ -595,9 +775,10 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowPromptModal(true)}
-                  className="self-start text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title="Copy a prompt to use with AI for generating test cases"
                 >
-                  How to prompt AI
+                  Ai Prompt
                 </button>
               </div>
             </div>
@@ -631,7 +812,7 @@ export default function Home() {
               <textarea
                 ref={pasteTextareaRef}
                 value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
+                onChange={(e) => applyRawText(e.target.value)}
                 rows={8}
                 placeholder="Paste test cases here or drag and drop a .txt file (BDD or Standard template)."
                 className="w-full resize-y rounded-b-lg rounded-t-none border border-slate-300 border-t-0 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
@@ -662,7 +843,10 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setRawText(""); setCases([]); setErrors([]); }}
+                  onClick={() => {
+                    applySnapshot({ cases: [], rawText: "" });
+                    setErrors([]);
+                  }}
                   className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   Clear
@@ -671,9 +855,19 @@ export default function Home() {
             </div>
             {errors.length > 0 && (
               <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
-                <p className="font-medium">Validation issues</p>
+                <p className="font-medium">Validation issues (click to highlight in pasted text)</p>
                 {errors.map((err, idx) => (
-                  <p key={idx} className="mt-1">{err.message}</p>
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => focusErrorBlock(err.blockText)}
+                    className="mt-1 flex w-full items-start gap-1 rounded px-1 py-0.5 text-left hover:bg-amber-100/70 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:hover:bg-amber-900/40"
+                  >
+                    <span className="mt-[1px] shrink-0 rounded bg-amber-200 px-1 text-[9px] font-semibold uppercase tracking-wide text-amber-900 dark:bg-amber-800 dark:text-amber-100">
+                      View
+                    </span>
+                    <span>{err.message}</span>
+                  </button>
                 ))}
               </div>
             )}
@@ -795,7 +989,36 @@ export default function Home() {
           <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Parsed test cases</h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!canUndo}
+                  onClick={handleUndo}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title="Undo last change (parsed cases + raw text). Shortcut: Ctrl+Z"
+                >
+                  <span aria-hidden="true">↺</span>
+                  <span className="sr-only">Undo</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!canRedo}
+                  onClick={handleRedo}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title="Redo change (parsed cases + raw text). Shortcut: Ctrl+Y or Ctrl+Shift+Z"
+                >
+                  <span aria-hidden="true">↻</span>
+                  <span className="sr-only">Redo</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={cases.length === 0}
+                  onClick={handleCopyList}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title="Copy list of test case titles (one per line) for pasting into a table"
+                >
+                  {copyListFeedback ? "Copied!" : "Copy list"}
+                </button>
                 <button
                   type="button"
                   disabled={cases.length === 0}
@@ -821,15 +1044,6 @@ export default function Home() {
                   title="Download test cases as Excel (.xlsx) with formatted table"
                 >
                   Export to Excel
-                </button>
-                <button
-                  type="button"
-                  disabled={cases.length === 0}
-                  onClick={handleCopyList}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                  title="Copy list of test case titles (one per line) for pasting into a table"
-                >
-                  {copyListFeedback ? "Copied!" : "Copy list"}
                 </button>
               </div>
             </div>
@@ -895,7 +1109,14 @@ export default function Home() {
                       return (
                         <li
                           key={`${testCaseId}-${index}`}
-                          className="bg-slate-100 dark:bg-slate-800/50"
+                          className={`bg-slate-100 dark:bg-slate-800/50 ${
+                            caseDragIndex === index ? "ring-2 ring-primary-400" : ""
+                          }`}
+                          draggable
+                          onDragStart={handleCaseDragStart(index)}
+                          onDragOver={handleCaseDragOver(index)}
+                          onDrop={handleCaseDrop(index)}
+                          onDragEnd={handleCaseDragEnd}
                         >
                           <div className="flex items-center gap-2 px-2 py-1.5">
                             <button
