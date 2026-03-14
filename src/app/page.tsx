@@ -1476,6 +1476,61 @@ export default function Home() {
                 promptCopied={promptCopied}
                 inModal
               />
+              <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-700">
+                <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-400">Use with</p>
+                <ul className="flex flex-wrap gap-2 text-xs">
+                  <li>
+                    <a
+                      href="https://chat.openai.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      ChatGPT
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://claude.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      Claude
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://gemini.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      Google Gemini
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://copilot.microsoft.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      Microsoft Copilot
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://www.perplexity.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      Perplexity
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
             <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
               <button
