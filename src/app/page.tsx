@@ -710,30 +710,39 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
-      <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-none">
-        <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">
-                  Azure DevOps
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Test case CSV converter
-                </span>
+      <header className="border-b-2 border-slate-200 bg-slate-50 shadow-md dark:border-slate-700 dark:bg-slate-800/95 dark:shadow-lg dark:shadow-black/20">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-shrink-0 items-center gap-5">
+              <h1 className="sr-only">Test Case Parser — Convert BDD or Standard test cases to Azure DevOps CSV</h1>
+              <a href="/" className="flex shrink-0 items-center" aria-label="Test Case Parser home">
+                <img
+                  src="/logo-light.svg"
+                  alt=""
+                  className="h-[56px] w-auto dark:hidden"
+                  aria-hidden
+                />
+                <img
+                  src="/logo-dark.svg"
+                  alt=""
+                  className="hidden h-[56px] w-auto dark:block"
+                  aria-hidden
+                />
+              </a>
+              <div className="hidden min-w-0 border-l border-slate-300 pl-5 dark:border-slate-600 sm:block">
+                <p className="truncate text-base font-semibold text-slate-800 dark:text-slate-200">
+                  Test Case Text to Azure DevOps CSV
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  BDD &amp; Standard templates
+                </p>
               </div>
-              <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl dark:text-slate-50">
-                Test Case Text to Azure DevOps CSV Converter
-              </h1>
-              <p className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-                Paste BDD or Standard test cases, review them, and download an Azure DevOps bulk import CSV.
-              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowHowToModal(true)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                 title="How to use"
                 aria-label="How to use"
               >
@@ -742,19 +751,19 @@ export default function Home() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="flex shrink-0 items-center rounded-full border border-slate-300 bg-slate-100 px-1.5 py-1 text-xs text-slate-700 hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                className="flex shrink-0 items-center rounded-lg border border-slate-300 bg-slate-100 px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
                 aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 <span
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                     isDark ? "bg-amber-300" : "bg-slate-700"
                   }`}
                   aria-hidden
                 >
                   <span
-                    className={`inline-flex h-5 w-5 transform items-center justify-center rounded-full bg-white text-[11px] shadow-sm transition-transform ${
-                      isDark ? "translate-x-5" : "translate-x-1"
+                    className={`inline-flex h-4 w-4 transform items-center justify-center rounded-full bg-white text-[10px] shadow-sm transition-transform ${
+                      isDark ? "translate-x-4" : "translate-x-0.5"
                     }`}
                   >
                     {isDark ? "☀️" : "🌙"}
@@ -763,17 +772,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-            Shortcuts:{" "}
-            <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">
-              Ctrl+Enter
-            </kbd>{" "}
-            Parse ·{" "}
-            <kbd className="rounded border border-slate-300 bg-slate-100 px-1 dark:border-slate-600 dark:bg-slate-700">
-              Ctrl+S
-            </kbd>{" "}
-            Download CSV
-          </p>
         </div>
       </header>
 
@@ -1310,6 +1308,17 @@ export default function Home() {
           <Link href="/import-guide" className="hover:text-slate-700 dark:hover:text-slate-300">Import guide</Link>
           {" · "}
           <Link href="/feedback" className="hover:text-slate-700 dark:hover:text-slate-300">Feedback</Link>
+          <p className="mt-2 text-[11px]">
+            Shortcuts:{" "}
+            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono dark:border-slate-600 dark:bg-slate-800">
+              Ctrl+Enter
+            </kbd>{" "}
+            Parse ·{" "}
+            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono dark:border-slate-600 dark:bg-slate-800">
+              Ctrl+S
+            </kbd>{" "}
+            Download CSV
+          </p>
         </div>
       </footer>
 
